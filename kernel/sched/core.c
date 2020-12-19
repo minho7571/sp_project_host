@@ -41,6 +41,12 @@
 
 DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 
+/* mhkim */
+int sp_enable_mwait = 0;
+module_param(sp_enable_mwait, int, 0664);
+EXPORT_SYMBOL_GPL(sp_enable_mwait);
+/* end */
+
 /*
  * Debugging: various feature bits
  */

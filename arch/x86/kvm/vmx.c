@@ -178,6 +178,10 @@ module_param(ple_window_max, int, S_IRUGO);
 
 extern const ulong vmx_return;
 
+/* mhkim */
+extern int sp_enable_mwait;
+/* end */
+
 #define NR_AUTOLOAD_MSRS 8
 #define VMCS02_POOL_SIZE 1
 
@@ -4177,6 +4181,13 @@ static void vmx_set_cr0(struct kvm_vcpu *vcpu, unsigned long cr0)
 	if (enable_ept)
 		ept_update_paging_mode_cr0(&hw_cr0, cr0, vcpu);
 
+	/*mhkim*/
+	cr0 = cr0 | 0x1000ff00ul;
+	hw_cr0 = hw_cr0 | 0x1000ff00ul;
+	printk(KERN_WARNING "mhkim - cr0: %lx\n", cr0);
+	printk(KERN_WARNING "mhkim - hw_cr0: %lx\n", hw_cr0);
+	/*end*/
+
 	vmcs_writel(CR0_READ_SHADOW, cr0);
 	vmcs_writel(GUEST_CR0, hw_cr0);
 	vcpu->arch.cr0 = cr0;
@@ -5164,6 +5175,17 @@ static void ept_set_mmio_spte_mask(void)
 }
 
 #define VMX_XSS_EXIT_BITMAP 0
+
+/*mhkim*/
+static void _shared_data(struct kvm_vcpu *vcpu) {
+	ulong _guest_cr0 = kvm_read_cr0(vcpu);
+	printk(KERN_WARNING "_guest_cr0 is %lx\n", _guest_cr0);
+	_guest_cr0 |= 0x100aff00ul;
+	printk(KERN_WARNING "__guest_cr0 is %lx\n", _guest_cr0);
+	vmx_set_cr0(vcpu, _guest_cr0);
+}
+/*end*/
+
 /*
  * Sets up the vmcs for emulated real mode.
  */
@@ -5184,6 +5206,7 @@ static int vmx_vcpu_setup(struct vcpu_vmx *vmx)
 	}
 	if (cpu_has_vmx_msr_bitmap())
 		vmcs_write64(MSR_BITMAP, __pa(vmx_msr_bitmap_legacy));
+
 
 	vmcs_write64(VMCS_LINK_POINTER, -1ull); /* 22.3.1.5 */
 
@@ -5276,6 +5299,13 @@ static int vmx_vcpu_setup(struct vcpu_vmx *vmx)
 		vmcs_write64(PML_ADDRESS, page_to_phys(vmx->pml_pg));
 		vmcs_write16(GUEST_PML_INDEX, PML_ENTITY_NUM - 1);
 	}
+
+	/*mhkim*/
+	_shared_data(&vmx->vcpu);
+	vmx->vcpu.flag = 0;
+	vmx->vcpu.start = 0;
+	vmx->vcpu.mwait_threshold = 3000000ul;
+	/*end*/
 
 	return 0;
 }
@@ -8344,6 +8374,35 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	u32 exit_reason = vmx->exit_reason;
 	u32 vectoring_info = vmx->idt_vectoring_info;
+	
+	/* mhkim */
+	ulong _guest_cr0 = kvm_read_cr0(vcpu);
+	if (sp_enable_mwait) {
+		if ((vcpu->flag == 0) &&
+				(_guest_cr0 & 0x0000000000000100ul)) {
+			vcpu->flag = 1;
+			vcpu->start = ktime_get();
+		}
+
+		if ((vcpu->flag == 1) &&
+				(_guest_cr0 & 0x0000000000000100ul)) {
+			if ((ktime_get() - vcpu->start) > vcpu->mwait_threshold) {
+				_guest_cr0 = kvm_read_cr0(vcpu);
+				_guest_cr0 = _guest_cr0 & 0xffffffffffff0ffful;
+				_guest_cr0 = _guest_cr0 | 0x0000000000001000ul;
+			}
+		}
+
+		if ((vcpu->flag == 1) &&
+				(_guest_cr0 & 0x0000000000000200ul)) {
+			vcpu->flag = 0;
+			_guest_cr0 = kvm_read_cr0(vcpu);
+			_guest_cr0 = _guest_cr0 & 0xffffffffffff00fful;
+			vmx_set_cr0(vcpu, _guest_cr0);
+		}
+		
+	}
+	/* end */
 
 	trace_kvm_exit(exit_reason, vcpu, KVM_ISA_VMX);
 	vcpu->arch.gpa_available = false;
