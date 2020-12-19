@@ -59,6 +59,14 @@
 #define X86_CR0_ET		_BITUL(X86_CR0_ET_BIT)
 #define X86_CR0_NE_BIT		5 /* Numeric Error */
 #define X86_CR0_NE		_BITUL(X86_CR0_NE_BIT)
+/* mhkim */
+#define X86_CR0_MS_BIT		8 /* Mwait Start */		
+#define X86_CR0_MS		_BITUL(X86_CR0_MS_BIT)
+#define X86_CR0_ME_BIT		9 /* Mwait End */		
+#define X86_CR0_ME		_BITUL(X86_CR0_ME_BIT)
+#define X86_CR0_MT_BIT		12 /* Mwait Timeout */		
+#define X86_CR0_MT		_BITUL(X86_CR0_MT_BIT)
+/* end */
 #define X86_CR0_WP_BIT		16 /* Write Protect */
 #define X86_CR0_WP		_BITUL(X86_CR0_WP_BIT)
 #define X86_CR0_AM_BIT		18 /* Alignment Mask */
