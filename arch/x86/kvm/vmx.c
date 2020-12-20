@@ -5286,7 +5286,7 @@ static int vmx_vcpu_setup(struct vcpu_vmx *vmx)
 	/*mhkim*/
 	vmx->vcpu.flag = 0;
 	vmx->vcpu.start = 0;
-	vmx->vcpu.mwait_threshold = 3000000ul; // 3ms
+	vmx->vcpu.mwait_threshold = 200000ul; // 3ms
 	/*end*/
 
 	return 0;
@@ -8364,12 +8364,12 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 		if ((vcpu->flag == 0) &&
 				(_guest_cr0 & 0x0000000000000100ul)) {
 			vcpu->flag = 1;
-			vcpu->start = ktime_get();
+			vcpu->start = ktime_get_ns();
 		}
 
 		if ((vcpu->flag == 1) &&
 				(_guest_cr0 & 0x0000000000000100ul)) {
-			if ((ktime_get() - vcpu->start) > vcpu->mwait_threshold) {
+			if ((ktime_get_ns() - vcpu->start) > vcpu->mwait_threshold) {
 				_guest_cr0 = kvm_read_cr0(vcpu);
 				_guest_cr0 = _guest_cr0 & 0xffffffffffff0ffful;
 				_guest_cr0 = _guest_cr0 | 0x0000000000001000ul;

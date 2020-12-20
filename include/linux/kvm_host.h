@@ -227,7 +227,7 @@ struct kvm_vcpu {
 
 	/*mhkim*/
 	int flag;
-	int start;
+	unsigned long start;
 	unsigned long mwait_threshold;
 	/*end*/
 
